@@ -87,6 +87,12 @@ async function suggestSubreddits(category, apiKey, reqModel) {
       }
     );
 
+    if (response.data.error) {
+      const err = new Error(response.data.error.message || 'OpenRouter API Error');
+      err.status = response.data.error.code || 500;
+      throw err;
+    }
+
     const content = response.data.choices[0].message.content;
     const cleanContent = content.replace(/```json/g, '').replace(/```/g, '').trim();
     const data = JSON.parse(cleanContent);
@@ -94,7 +100,7 @@ async function suggestSubreddits(category, apiKey, reqModel) {
     return data.subreddits;
   } catch (error) {
     console.error("LLM suggestSubreddits failed:", error.message);
-    const status = error.response?.status || 500;
+    const status = error.status || error.response?.status || 500;
     const e = new Error('Subreddit ideation failed');
     e.status = status;
     throw e;
@@ -140,12 +146,18 @@ Return ONLY a JSON object with these exactly 7 keys. Each key should contain a s
       }
     );
 
+    if (response.data.error) {
+      const err = new Error(response.data.error.message || 'OpenRouter API Error');
+      err.status = response.data.error.code || 500;
+      throw err;
+    }
+
     const content = response.data.choices[0].message.content;
     const cleanContent = content.replace(/```json/g, '').replace(/```/g, '').trim();
     return JSON.parse(cleanContent);
   } catch (error) {
     console.error("LLM analyzeMarketSignals failed:", error.message);
-    const status = error.response?.status || 500;
+    const status = error.status || error.response?.status || 500;
     const e = new Error('Market analysis failed');
     e.status = status;
     throw e;

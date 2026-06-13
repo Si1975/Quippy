@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { TrendingUp, Loader2, Key, History } from 'lucide-react';
 import ConfigurationPanel from './components/ConfigurationPanel';
 import InsightsDashboard from './components/InsightsDashboard';
-import { analyzeNiche, fetchHistory, fetchAnalysis } from './services/api';
+import { analyzeNiche, fetchHistory, fetchAnalysis, fetchModels } from './services/api';
 
 function App() {
   const [signals, setSignals] = useState(null);

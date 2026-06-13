@@ -47,6 +47,7 @@ db.exec(`
     subreddits_json TEXT,
     insights_json TEXT,
     model_used TEXT,
+    signals_config_json TEXT,
     created_at INTEGER
   );
 `);
@@ -56,6 +57,9 @@ try {
   const tableInfo = db.pragma('table_info(analyses)');
   if (!tableInfo.some(col => col.name === 'model_used')) {
     db.exec('ALTER TABLE analyses ADD COLUMN model_used TEXT;');
+  }
+  if (!tableInfo.some(col => col.name === 'signals_config_json')) {
+    db.exec('ALTER TABLE analyses ADD COLUMN signals_config_json TEXT;');
   }
 } catch (e) {
   console.log("Migration error:", e);

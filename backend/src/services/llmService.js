@@ -107,9 +107,25 @@ async function suggestSubreddits(category, apiKey, reqModel) {
   }
 }
 
-async function analyzeMarketSignals(aggregatedText, category, apiKey, reqModel) {
+const DEFAULT_SIGNALS = [
+  { key: 'buying_signals', description: 'people actively trying to buy.' },
+  { key: 'unmet_demand', description: 'gaps in the market.' },
+  { key: 'style_requests', description: 'aesthetics people are asking about.' },
+  { key: 'room_specific', description: 'bare wall problems or room-specific needs.' },
+  { key: 'gift_related', description: 'personalised/custom print demand.' },
+  { key: 'trend_spotting', description: "what's having a moment." },
+  { key: 'colour_trends', description: 'current trending colors.' }
+];
+
+async function analyzeMarketSignals(aggregatedText, category, apiKey, reqModel, signalsConfig) {
   const model = reqModel || ALLOWED_MODELS[0];
   validateModel(model);
+
+  const activeSignals = (signalsConfig && signalsConfig.length > 0) ? signalsConfig : DEFAULT_SIGNALS;
+  const signalsList = activeSignals.map((s, i) => `${i + 1}. ${s.key}: ${s.description}`).join('\n');
+  const signalKeys = activeSignals.map(s => `"${s.key}"`).join(', ');
+
+  const systemPrompt = `You are an expert market researcher. Analyze the following Reddit discussions about "${category}". Extract the following ${activeSignals.length} market signals:\n${signalsList}\n\nReturn ONLY a JSON object with these exactly ${activeSignals.length} keys (${signalKeys}). Each key should contain a short string summarising the findings with specific examples or quotes if possible.`;
 
   try {
     const response = await axios.post(
@@ -119,16 +135,7 @@ async function analyzeMarketSignals(aggregatedText, category, apiKey, reqModel) 
         messages: [
           {
             role: 'system',
-            content: `You are an expert market researcher. Analyze the following Reddit discussions about "${category}". Extract the following 7 market signals:
-1. buying_signals: people actively trying to buy.
-2. unmet_demand: gaps in the market.
-3. style_requests: aesthetics people are asking about.
-4. room_specific: bare wall problems or room-specific needs.
-5. gift_related: personalised/custom print demand.
-6. trend_spotting: what's having a moment.
-7. colour_trends: current trending colors.
-
-Return ONLY a JSON object with these exactly 7 keys. Each key should contain a short string summarising the findings with specific examples or quotes if possible.`
+            content: systemPrompt
           },
           {
             role: 'user',

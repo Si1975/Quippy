@@ -6,16 +6,18 @@ Quippy is an AI-powered market research dashboard that scrapes Reddit discussion
 
 1. **Category Ideation**: Enter a broad category (like "Wall Art" or "Mechanical Keyboards") and the app's LLM suggests the most relevant subreddits to analyze.
 2. **Data Aggregation**: The backend connects to the PullPush API to scrape the hottest posts and top comments from those targeted subreddits.
-3. **Signal Extraction**: The scraped text is sent to an LLM, which is specifically prompted to extract 7 key market signals:
-   - Buying Signals
-   - Unmet Demand
-   - Style Requests
-   - Room Specific Problems
-   - Gift & Custom Demand
-   - Trend Spotting
-   - Colour Trends
+3. **Custom Signal Extraction**: The scraped text is sent to an LLM, which is dynamically prompted to extract specific market signals. You can toggle default signals on/off or create your own custom signals on the fly.
 4. **Historical Tracking**: All analyses are saved to a local SQLite database, allowing you to seamlessly load past research and track market changes over time.
 5. **Premium UI**: Results are displayed in a sleek, glassmorphic grid dashboard built with React, featuring dynamic view toggles and integrated internal scrolling.
+
+## 🎯 How Custom Signals Work
+
+Quippy allows you to define exactly what kind of market research the AI should look for in the Reddit data. By adding a Custom Signal in the Configuration Panel, you dynamically alter the system prompt sent to the LLM.
+
+When adding a custom signal, you need to provide three fields:
+- **Key**: A simple internal identifier (e.g., `brand_mentions` or `pricing_complaints`). Use lowercase and underscores.
+- **Label**: The human-readable title that will appear in your insights dashboard (e.g., "Brand Mentions").
+- **Description**: This is the most important part! **This description is injected directly into the LLM prompt.** It tells the AI exactly what to search for in the text. For example, if you enter *"people complaining about high prices or asking for budget alternatives"*, the AI will scan all the scraped Reddit posts specifically for quotes matching that behavior.
 
 ## 🛠️ How to Run Locally
 

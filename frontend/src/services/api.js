@@ -23,14 +23,14 @@ export const ideateSubreddits = async (category, apiKey, model) => {
   return res.json();
 };
 
-export const analyzeNiche = async (category, subreddits, apiKey, model) => {
+export const analyzeNiche = async (category, subreddits, apiKey, model, signalsConfig) => {
   const headers = { 'Content-Type': 'application/json' };
   if (apiKey) headers['X-API-Key'] = apiKey;
 
   const res = await fetch(API_BASE + '/analyze-niche', {
     method: 'POST',
     headers,
-    body: JSON.stringify({ category, subreddits, model })
+    body: JSON.stringify({ category, subreddits, model, signalsConfig })
   });
   if (!res.ok) {
     if (res.status === 401) throw new Error('API_KEY_REQUIRED');

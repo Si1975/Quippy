@@ -4,6 +4,16 @@ import ConfigurationPanel from './components/ConfigurationPanel';
 import InsightsDashboard from './components/InsightsDashboard';
 import { analyzeNiche, fetchHistory, fetchAnalysis, fetchModels } from './services/api';
 
+const DEFAULT_SIGNALS = [
+  { key: 'buying_signals', label: 'Buying Signals', description: 'people actively trying to buy.', active: true, default: true },
+  { key: 'unmet_demand', label: 'Unmet Demand', description: 'gaps in the market.', active: true, default: true },
+  { key: 'style_requests', label: 'Style Requests', description: 'aesthetics people are asking about.', active: true, default: true },
+  { key: 'room_specific', label: 'Room Specific Needs', description: 'bare wall problems or room-specific needs.', active: true, default: true },
+  { key: 'gift_related', label: 'Gift & Custom Demand', description: 'personalised/custom print demand.', active: true, default: true },
+  { key: 'trend_spotting', label: 'Trend Spotting', description: "what's having a moment.", active: true, default: true },
+  { key: 'colour_trends', label: 'Colour Trends', description: 'current trending colors.', active: true, default: true }
+];
+
 function App() {
   const [signals, setSignals] = useState(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -14,6 +24,16 @@ function App() {
   const [models, setModels] = useState([]);
   const [selectedModel, setSelectedModel] = useState('');
   const [activeAnalysis, setActiveAnalysis] = useState(null);
+  const [viewMode, setViewMode] = useState('grid');
+  
+  const [signalsConfig, setSignalsConfig] = useState(() => {
+    const saved = localStorage.getItem('signals_config');
+    return saved ? JSON.parse(saved) : DEFAULT_SIGNALS;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('signals_config', JSON.stringify(signalsConfig));
+  }, [signalsConfig]);
 
   const loadHistory = async () => {
     try {
@@ -49,7 +69,8 @@ function App() {
     setIsAnalyzing(true);
     setError(null);
     try {
-      const data = await analyzeNiche(category, subreddits, apiKey, selectedModel);
+      const activeSignals = signalsConfig.filter(s => s.active).map(({key, label, description}) => ({key, label, description}));
+      const data = await analyzeNiche(category, subreddits, apiKey, selectedModel, activeSignals);
       setSignals(data.signals);
       setActiveAnalysis(data.metadata);
       loadHistory(); // Refresh history
@@ -87,8 +108,8 @@ function App() {
         </div>
       </header>
 
-      <main className="main-content" style={{ gridTemplateColumns: '350px 1fr', padding: '1rem 2rem', gap: '2rem' }}>
-        {/* Left Column: Configuration & History Sidebar */}
+      <main className="main-content" style={{ gridTemplateColumns: '350px 1fr 300px', padding: '1rem 2rem', gap: '2rem' }}>
+        {/* Left Column: Configuration Sidebar */}
         <aside className="sidebar" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', overflow: 'hidden' }}>
            <ConfigurationPanel 
              onAnalyze={handleAnalyze} 
@@ -97,40 +118,12 @@ function App() {
              models={models}
              selectedModel={selectedModel}
              setSelectedModel={setSelectedModel}
+             signalsConfig={signalsConfig}
+             setSignalsConfig={setSignalsConfig}
            />
-           
-           <div className="glass-panel" style={{ padding: '1.5rem', flex: 1, overflowY: 'auto' }}>
-             <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-               <History size={18} /> Analysis History
-             </h3>
-             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
-               {history.length === 0 ? (
-                 <p className="text-secondary" style={{ fontSize: '0.9rem' }}>No past analyses.</p>
-               ) : (
-                  history.map(item => (
-                    <div 
-                      key={item.id} 
-                      className={`history-card ${activeAnalysis?.id === item.id ? 'active' : ''}`}
-                      onClick={() => handleLoadHistory(item.id)}
-                      style={{ padding: '0.8rem', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', cursor: 'pointer', transition: 'background 0.2s' }}
-                      onMouseEnter={e => { if (activeAnalysis?.id !== item.id) e.currentTarget.style.background = 'rgba(255,255,255,0.08)' }}
-                      onMouseLeave={e => { if (activeAnalysis?.id !== item.id) e.currentTarget.style.background = 'rgba(255,255,255,0.03)' }}
-                    >
-                     <div style={{ fontWeight: '600', marginBottom: '0.2rem' }}>{item.category}</div>
-                     <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                       {item.subreddits.length} subreddits • {new Date(item.created_at).toLocaleDateString()}
-                     </div>
-                     <div style={{ fontSize: '0.7rem', color: 'var(--accent-color)', marginTop: '0.3rem', opacity: 0.8 }}>
-                       {item.model_used || 'Unknown Model'}
-                     </div>
-                   </div>
-                 ))
-               )}
-             </div>
-           </div>
         </aside>
 
-        {/* Right Column: Insights Dashboard */}
+        {/* Middle Column: Main Dashboard */}
         <section className="dashboard" style={{ overflowY: 'auto', paddingRight: '0.5rem' }}>
            {isAnalyzing ? (
              <div className="glass-panel" style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem' }}>
@@ -162,9 +155,42 @@ function App() {
                 )}
              </div>
            ) : (
-             <InsightsDashboard signals={signals} metadata={activeAnalysis} />
+             <InsightsDashboard signals={signals} metadata={activeAnalysis} viewMode={viewMode} setViewMode={setViewMode} />
            )}
         </section>
+
+        {/* Right Column: History Sidebar */}
+        <aside className="sidebar" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', overflow: 'hidden' }}>
+           <div className="glass-panel" style={{ padding: '1.5rem', flex: 1, overflowY: 'auto' }}>
+             <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+               <History size={18} /> Analysis History
+             </h3>
+             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+               {history.length === 0 ? (
+                 <p className="text-secondary" style={{ fontSize: '0.9rem' }}>No past analyses.</p>
+               ) : (
+                  history.map(item => (
+                    <div 
+                      key={item.id} 
+                      className={`history-card ${activeAnalysis?.id === item.id ? 'active' : ''}`}
+                      onClick={() => handleLoadHistory(item.id)}
+                      style={{ padding: '0.8rem', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', cursor: 'pointer', transition: 'background 0.2s' }}
+                      onMouseEnter={e => { if (activeAnalysis?.id !== item.id) e.currentTarget.style.background = 'rgba(255,255,255,0.08)' }}
+                      onMouseLeave={e => { if (activeAnalysis?.id !== item.id) e.currentTarget.style.background = 'rgba(255,255,255,0.03)' }}
+                    >
+                     <div style={{ fontWeight: '600', marginBottom: '0.2rem' }}>{item.category}</div>
+                     <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                       {item.subreddits.length} subreddits • {new Date(item.created_at).toLocaleDateString()}
+                     </div>
+                     <div style={{ fontSize: '0.7rem', color: 'var(--accent-color)', marginTop: '0.3rem', opacity: 0.8 }}>
+                       {item.model_used || 'Unknown Model'}
+                     </div>
+                   </div>
+                 ))
+               )}
+             </div>
+           </div>
+        </aside>
       </main>
     </div>
   );

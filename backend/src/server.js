@@ -33,7 +33,7 @@ app.post('/api/ideate-subreddits', async (req, res) => {
 
 app.post('/api/analyze-niche', async (req, res) => {
   try {
-    const { category, subreddits, model } = req.body;
+    const { category, subreddits, model, signalsConfig } = req.body;
     const apiKey = req.headers['x-api-key'] || process.env.OPENROUTER_API_KEY;
     if (!category || !subreddits || !Array.isArray(subreddits)) {
       return res.status(400).json({ error: 'Category and subreddits array are required' });
@@ -44,7 +44,8 @@ app.post('/api/analyze-niche', async (req, res) => {
 
     // Check if we already have a recent analysis for this exact configuration
     const subsJson = JSON.stringify(subreddits.sort());
-    const existing = db.prepare('SELECT * FROM analyses WHERE category = ? AND subreddits_json = ? AND model_used = ? ORDER BY created_at DESC LIMIT 1').get(category, subsJson, selectedModel);
+    const signalsJson = JSON.stringify(signalsConfig || []);
+    const existing = db.prepare('SELECT * FROM analyses WHERE category = ? AND subreddits_json = ? AND model_used = ? AND (signals_config_json = ? OR signals_config_json IS NULL) ORDER BY created_at DESC LIMIT 1').get(category, subsJson, selectedModel, signalsJson);
     
     if (existing) {
       return res.json({ 
@@ -53,7 +54,8 @@ app.post('/api/analyze-niche', async (req, res) => {
           id: existing.id,
           category: existing.category,
           subreddits: JSON.parse(existing.subreddits_json),
-          model_used: existing.model_used
+          model_used: existing.model_used,
+          signalsConfig: existing.signals_config_json ? JSON.parse(existing.signals_config_json) : []
         }
       });
     }
@@ -90,14 +92,15 @@ app.post('/api/analyze-niche', async (req, res) => {
     }
 
     // 2. Send to LLM
-    const signals = await analyzeMarketSignals(aggregatedText, category, apiKey, selectedModel);
+    const signals = await analyzeMarketSignals(aggregatedText, category, apiKey, selectedModel, signalsConfig);
 
     // 3. Cache the result
-    const info = db.prepare('INSERT INTO analyses (category, subreddits_json, insights_json, model_used, created_at) VALUES (?, ?, ?, ?, ?)').run(
+    const info = db.prepare('INSERT INTO analyses (category, subreddits_json, insights_json, model_used, signals_config_json, created_at) VALUES (?, ?, ?, ?, ?, ?)').run(
       category,
       subsJson,
       JSON.stringify(signals),
       selectedModel,
+      signalsJson,
       Date.now()
     );
 
@@ -107,7 +110,8 @@ app.post('/api/analyze-niche', async (req, res) => {
         id: info.lastInsertRowid,
         category,
         subreddits,
-        model_used: selectedModel
+        model_used: selectedModel,
+        signalsConfig: signalsConfig || []
       }
     });
   } catch (error) {
@@ -139,7 +143,8 @@ app.get('/api/history/:id', (req, res) => {
         id: row.id,
         category: row.category,
         model_used: row.model_used,
-        subreddits: JSON.parse(row.subreddits_json)
+        subreddits: JSON.parse(row.subreddits_json),
+        signalsConfig: row.signals_config_json ? JSON.parse(row.signals_config_json) : []
       }
     });
   } catch (error) {

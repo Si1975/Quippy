@@ -3,10 +3,10 @@ const axios = require('axios');
 // HARD SYSTEM CONSTRAINT: OpenRouter Free Models Whitelist
 const ALLOWED_MODELS = [
   'meta-llama/llama-3.3-70b-instruct:free',
-  'google/gemma-3-27b-it:free',
   'qwen/qwen3-coder:free',
-  'mistralai/mistral-7b-instruct:free',
-  'nvidia/llama-3.1-nemotron-70b-instruct:free'
+  'google/gemma-4-31b-it:free',
+  'openai/gpt-oss-120b:free',
+  'nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free'
 ];
 
 function validateModel(model) {

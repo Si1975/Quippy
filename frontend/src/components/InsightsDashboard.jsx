@@ -54,6 +54,7 @@ export default function InsightsDashboard({ signals, metadata }) {
            <List size={18} />
          </button>
       </div>
+      </div>
       <div className={viewMode === 'grid' ? 'insights-grid animate-fade-in' : 'insights-list animate-fade-in'}>
         {cards.map((card, index) => (
           <div key={card.key} className="glass-panel insight-card" style={{ animationDelay: (index * 0.05) + 's' }}>

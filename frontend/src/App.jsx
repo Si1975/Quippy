@@ -13,6 +13,7 @@ function App() {
   const [tempKey, setTempKey] = useState('');
   const [models, setModels] = useState([]);
   const [selectedModel, setSelectedModel] = useState('');
+  const [activeAnalysis, setActiveAnalysis] = useState(null);
 
   const loadHistory = async () => {
     try {
@@ -50,6 +51,7 @@ function App() {
     try {
       const data = await analyzeNiche(category, subreddits, apiKey, selectedModel);
       setSignals(data.signals);
+      setActiveAnalysis(data.metadata);
       loadHistory(); // Refresh history
     } catch (err) {
       if (err.message === 'API_KEY_REQUIRED') {
@@ -69,6 +71,7 @@ function App() {
     try {
       const data = await fetchAnalysis(id);
       setSignals(data.signals);
+      setActiveAnalysis(data.metadata);
     } catch (err) {
       setError({ type: 'general', message: 'Failed to load historical analysis.' });
     }
@@ -104,15 +107,15 @@ function App() {
                {history.length === 0 ? (
                  <p className="text-secondary" style={{ fontSize: '0.9rem' }}>No past analyses.</p>
                ) : (
-                 history.map(item => (
-                   <div 
-                     key={item.id} 
-                     className="history-card"
-                     onClick={() => handleLoadHistory(item.id)}
-                     style={{ padding: '0.8rem', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', cursor: 'pointer', transition: 'background 0.2s' }}
-                     onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.08)'}
-                     onMouseLeave={e => e.currentTarget.style.background = 'rgba(255,255,255,0.03)'}
-                   >
+                  history.map(item => (
+                    <div 
+                      key={item.id} 
+                      className={`history-card ${activeAnalysis?.id === item.id ? 'active' : ''}`}
+                      onClick={() => handleLoadHistory(item.id)}
+                      style={{ padding: '0.8rem', background: 'rgba(255,255,255,0.03)', borderRadius: '8px', cursor: 'pointer', transition: 'background 0.2s' }}
+                      onMouseEnter={e => { if (activeAnalysis?.id !== item.id) e.currentTarget.style.background = 'rgba(255,255,255,0.08)' }}
+                      onMouseLeave={e => { if (activeAnalysis?.id !== item.id) e.currentTarget.style.background = 'rgba(255,255,255,0.03)' }}
+                    >
                      <div style={{ fontWeight: '600', marginBottom: '0.2rem' }}>{item.category}</div>
                      <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                        {item.subreddits.length} subreddits • {new Date(item.created_at).toLocaleDateString()}
@@ -159,7 +162,7 @@ function App() {
                 )}
              </div>
            ) : (
-             <InsightsDashboard signals={signals} />
+             <InsightsDashboard signals={signals} metadata={activeAnalysis} />
            )}
         </section>
       </main>

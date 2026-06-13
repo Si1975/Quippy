@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ShoppingCart, SearchX, Palette, Home, Gift, TrendingUp, PaintBucket, LayoutGrid, List } from 'lucide-react';
 
-export default function InsightsDashboard({ signals }) {
+export default function InsightsDashboard({ signals, metadata }) {
   const [viewMode, setViewMode] = useState('grid');
   if (!signals) {
     return (
@@ -23,8 +23,21 @@ export default function InsightsDashboard({ signals }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
-         <button 
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
+        {metadata ? (
+          <div className="glass-panel" style={{ padding: '1.2rem', flex: 1, marginRight: '1rem', borderLeft: '4px solid var(--accent-color)' }}>
+            <h2 style={{ margin: 0, fontSize: '1.4rem' }}>{metadata.category}</h2>
+            <div style={{ display: 'flex', gap: '1.5rem', marginTop: '0.5rem', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
+               <span><strong style={{color: 'var(--text-primary)'}}>Model:</strong> {metadata.model_used || 'Unknown'}</span>
+               <span><strong style={{color: 'var(--text-primary)'}}>Subreddits:</strong> {metadata.subreddits.map(s => 'r/' + s).join(', ')}</span>
+            </div>
+          </div>
+        ) : (
+          <div style={{ flex: 1 }}></div>
+        )}
+        
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+           <button 
            className="btn-outline" 
            style={{ padding: '0.4rem', border: viewMode === 'grid' ? '1px solid var(--accent-color)' : '', color: viewMode === 'grid' ? 'var(--accent-color)' : '' }}
            onClick={() => setViewMode('grid')}

@@ -44,10 +44,18 @@ app.post('/api/analyze-niche', async (req, res) => {
 
     // Check if we already have a recent analysis for this exact configuration
     const subsJson = JSON.stringify(subreddits.sort());
-    const existing = db.prepare('SELECT insights_json FROM analyses WHERE category = ? AND subreddits_json = ? AND model_used = ? ORDER BY created_at DESC LIMIT 1').get(category, subsJson, selectedModel);
+    const existing = db.prepare('SELECT * FROM analyses WHERE category = ? AND subreddits_json = ? AND model_used = ? ORDER BY created_at DESC LIMIT 1').get(category, subsJson, selectedModel);
     
     if (existing) {
-      return res.json({ signals: JSON.parse(existing.insights_json) });
+      return res.json({ 
+        signals: JSON.parse(existing.insights_json),
+        metadata: {
+          id: existing.id,
+          category: existing.category,
+          subreddits: JSON.parse(existing.subreddits_json),
+          model_used: existing.model_used
+        }
+      });
     }
 
     // 1. Fetch Reddit Data
@@ -85,7 +93,7 @@ app.post('/api/analyze-niche', async (req, res) => {
     const signals = await analyzeMarketSignals(aggregatedText, category, apiKey, selectedModel);
 
     // 3. Cache the result
-    db.prepare('INSERT INTO analyses (category, subreddits_json, insights_json, model_used, created_at) VALUES (?, ?, ?, ?, ?)').run(
+    const info = db.prepare('INSERT INTO analyses (category, subreddits_json, insights_json, model_used, created_at) VALUES (?, ?, ?, ?, ?)').run(
       category,
       subsJson,
       JSON.stringify(signals),
@@ -93,7 +101,15 @@ app.post('/api/analyze-niche', async (req, res) => {
       Date.now()
     );
 
-    res.json({ signals });
+    res.json({ 
+      signals,
+      metadata: {
+        id: info.lastInsertRowid,
+        category,
+        subreddits,
+        model_used: selectedModel
+      }
+    });
   } catch (error) {
     console.error("Error in /analyze-niche:", error);
     res.status(error.status || 500).json({ error: error.message });
@@ -115,9 +131,17 @@ app.get('/api/history', (req, res) => {
 
 app.get('/api/history/:id', (req, res) => {
   try {
-    const row = db.prepare('SELECT insights_json FROM analyses WHERE id = ?').get(req.params.id);
+    const row = db.prepare('SELECT * FROM analyses WHERE id = ?').get(req.params.id);
     if (!row) return res.status(404).json({ error: 'Analysis not found' });
-    res.json({ signals: JSON.parse(row.insights_json) });
+    res.json({ 
+      signals: JSON.parse(row.insights_json),
+      metadata: {
+        id: row.id,
+        category: row.category,
+        model_used: row.model_used,
+        subreddits: JSON.parse(row.subreddits_json)
+      }
+    });
   } catch (error) {
     console.error("Error fetching analysis:", error);
     res.status(500).json({ error: 'Failed to fetch analysis' });

@@ -86,7 +86,7 @@ function App() {
 
       <main className="main-content" style={{ gridTemplateColumns: '350px 1fr', padding: '1rem 2rem', gap: '2rem' }}>
         {/* Left Column: Configuration & History Sidebar */}
-        <aside className="sidebar" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <aside className="sidebar" style={{ display: 'flex', flexDirection: 'column', gap: '1rem', overflow: 'hidden' }}>
            <ConfigurationPanel 
              onAnalyze={handleAnalyze} 
              apiKey={apiKey} 
@@ -128,7 +128,7 @@ function App() {
         </aside>
 
         {/* Right Column: Insights Dashboard */}
-        <section className="dashboard">
+        <section className="dashboard" style={{ overflowY: 'auto', paddingRight: '0.5rem' }}>
            {isAnalyzing ? (
              <div className="glass-panel" style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '1rem' }}>
                <Loader2 size={48} color="var(--accent-color)" className="spinner" />

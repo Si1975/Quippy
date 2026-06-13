@@ -59,7 +59,8 @@ h1, h2, h3 {
 .app-container {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  height: 100vh;
+  overflow: hidden;
 }
 
 .header {
@@ -81,6 +82,7 @@ h1, h2, h3 {
   gap: 2rem;
   padding: 2rem;
   flex: 1;
+  overflow: hidden;
 }
 
 @media (min-width: 1024px) {
@@ -271,6 +273,13 @@ h1, h2, h3 {
 .insights-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  width: 100%;
+}
+
+.insights-list {
+  display: flex;
+  flex-direction: column;
   gap: 1.5rem;
   width: 100%;
 }

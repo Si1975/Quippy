@@ -1,6 +1,8 @@
-import { ShoppingCart, SearchX, Palette, Home, Gift, TrendingUp, PaintBucket } from 'lucide-react';
+import { useState } from 'react';
+import { ShoppingCart, SearchX, Palette, Home, Gift, TrendingUp, PaintBucket, LayoutGrid, List } from 'lucide-react';
 
 export default function InsightsDashboard({ signals }) {
+  const [viewMode, setViewMode] = useState('grid');
   if (!signals) {
     return (
       <div className="glass-panel" style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem', textAlign: 'center' }}>
@@ -20,20 +22,40 @@ export default function InsightsDashboard({ signals }) {
   ];
 
   return (
-    <div className="insights-grid animate-fade-in">
-      {cards.map((card, index) => (
-        <div key={card.key} className="glass-panel insight-card" style={{ animationDelay: (index * 0.05) + 's' }}>
-           <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', marginBottom: '1rem' }}>
-              <div style={{ background: card.color, padding: '0.6rem', borderRadius: '12px' }}>
-                {card.icon}
-              </div>
-              <h3 style={{ fontSize: '1.1rem', margin: 0 }}>{card.label}</h3>
-           </div>
-           <p style={{ color: 'rgba(255,255,255,0.85)', lineHeight: 1.6 }}>
-             {signals[card.key] || 'No specific insights found for this metric.'}
-           </p>
-        </div>
-      ))}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
+         <button 
+           className="btn-outline" 
+           style={{ padding: '0.4rem', border: viewMode === 'grid' ? '1px solid var(--accent-color)' : '', color: viewMode === 'grid' ? 'var(--accent-color)' : '' }}
+           onClick={() => setViewMode('grid')}
+           title="Grid View"
+         >
+           <LayoutGrid size={18} />
+         </button>
+         <button 
+           className="btn-outline" 
+           style={{ padding: '0.4rem', border: viewMode === 'list' ? '1px solid var(--accent-color)' : '', color: viewMode === 'list' ? 'var(--accent-color)' : '' }}
+           onClick={() => setViewMode('list')}
+           title="List View"
+         >
+           <List size={18} />
+         </button>
+      </div>
+      <div className={viewMode === 'grid' ? 'insights-grid animate-fade-in' : 'insights-list animate-fade-in'}>
+        {cards.map((card, index) => (
+          <div key={card.key} className="glass-panel insight-card" style={{ animationDelay: (index * 0.05) + 's' }}>
+             <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem', marginBottom: '1rem' }}>
+                <div style={{ background: card.color, padding: '0.6rem', borderRadius: '12px' }}>
+                  {card.icon}
+                </div>
+                <h3 style={{ fontSize: '1.1rem', margin: 0 }}>{card.label}</h3>
+             </div>
+             <p style={{ color: 'rgba(255,255,255,0.85)', lineHeight: 1.6 }}>
+               {signals[card.key] || 'No specific insights found for this metric.'}
+             </p>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

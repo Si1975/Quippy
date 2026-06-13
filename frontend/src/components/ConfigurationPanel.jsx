@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Search, Loader2, Plus, X, Play } from 'lucide-react';
 import { ideateSubreddits } from '../services/api';
 
-export default function ConfigurationPanel({ onAnalyze }) {
+export default function ConfigurationPanel({ onAnalyze, apiKey, onError }) {
   const [category, setCategory] = useState('');
   const [subreddits, setSubreddits] = useState([]);
   const [newSub, setNewSub] = useState('');
@@ -11,13 +11,20 @@ export default function ConfigurationPanel({ onAnalyze }) {
   const handleIdeate = async () => {
     if (!category) return;
     setIsIdeating(true);
+    onError(null);
     try {
-      const data = await ideateSubreddits(category);
+      const data = await ideateSubreddits(category, apiKey);
       // Merge unique
       const merged = Array.from(new Set([...subreddits, ...(data.subreddits || [])]));
       setSubreddits(merged);
-    } catch (error) {
-      console.error(error);
+    } catch (err) {
+      if (err.message === 'API_KEY_REQUIRED') {
+        onError({ type: 'auth', message: 'OpenRouter API Key is required.' });
+      } else if (err.message === 'RATE_LIMIT') {
+        onError({ type: 'rate', message: 'OpenRouter API rate limit reached.' });
+      } else {
+        onError({ type: 'general', message: 'Failed to auto-ideate subreddits.' });
+      }
     }
     setIsIdeating(false);
   };

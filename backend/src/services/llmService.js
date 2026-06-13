@@ -93,10 +93,10 @@ async function suggestSubreddits(category, apiKey) {
     return data.subreddits;
   } catch (error) {
     console.error("LLM suggestSubreddits failed:", error.message);
-    if (category.toLowerCase().includes('art') || category.toLowerCase().includes('decor')) {
-       return ['HomeDecorating', 'malelivingspace', 'InteriorDesign', 'femalelivingspace', 'AmateurRoomPorn'];
-    }
-    return ['AskReddit', 'technology', 'gadgets'];
+    const status = error.response?.status || 500;
+    const e = new Error('Subreddit ideation failed');
+    e.status = status;
+    throw e;
   }
 }
 
@@ -144,16 +144,10 @@ Return ONLY a JSON object with these exactly 7 keys. Each key should contain a s
     return JSON.parse(cleanContent);
   } catch (error) {
     console.error("LLM analyzeMarketSignals failed:", error.message);
-    // Mock response for Wall Art category to bypass 429 during demo
-    return {
-      buying_signals: "Several users asking 'Where did you get that botanical print?' and 'Link to the abstract canvas?'",
-      unmet_demand: "People are struggling to find affordable large-scale horizontal pieces for over the sofa.",
-      style_requests: "High interest in Japandi, mid-century modern minimalist, and dark academia vintage posters.",
-      room_specific: "Lots of posts complaining about 'bare walls' in home offices and above beds.",
-      gift_related: "Frequent questions about custom pet portraits or personalized map prints for anniversaries.",
-      trend_spotting: "Gallery walls are still popular, but moving towards fewer, larger statement pieces instead of clutter.",
-      colour_trends: "Sage green, terracotta, and mustard yellow accents are dominating the discussions."
-    };
+    const status = error.response?.status || 500;
+    const e = new Error('Market analysis failed');
+    e.status = status;
+    throw e;
   }
 }
 

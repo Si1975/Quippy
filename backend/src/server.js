@@ -14,22 +14,26 @@ app.use(express.json());
 app.post('/api/ideate-subreddits', async (req, res) => {
   try {
     const { category } = req.body;
+    const apiKey = req.headers['x-api-key'] || process.env.OPENROUTER_API_KEY;
     if (!category) return res.status(400).json({ error: 'Category is required' });
+    if (!apiKey) return res.status(401).json({ error: 'OpenRouter API Key is required' });
 
-    const subreddits = await suggestSubreddits(category, process.env.OPENROUTER_API_KEY);
+    const subreddits = await suggestSubreddits(category, apiKey);
     res.json({ subreddits });
   } catch (error) {
     console.error("Error in /ideate-subreddits:", error);
-    res.status(500).json({ error: error.message });
+    res.status(error.status || 500).json({ error: error.message });
   }
 });
 
 app.post('/api/analyze-niche', async (req, res) => {
   try {
     const { category, subreddits } = req.body;
+    const apiKey = req.headers['x-api-key'] || process.env.OPENROUTER_API_KEY;
     if (!category || !subreddits || !Array.isArray(subreddits)) {
       return res.status(400).json({ error: 'Category and subreddits array are required' });
     }
+    if (!apiKey) return res.status(401).json({ error: 'OpenRouter API Key is required' });
 
     // Check if we already have a recent analysis for this exact configuration
     const subsJson = JSON.stringify(subreddits.sort());
@@ -67,16 +71,11 @@ app.post('/api/analyze-niche', async (req, res) => {
     }
 
     if (aggregatedText.trim() === '') {
-       // Fallback for demo if Reddit blocks with 403
-       aggregatedText = `Mock Reddit Discussion about ${category}: 
-       Post: I can't find good art for my walls! 
-       Comment: Yes, the demand is unmet. I wish someone made custom prints. 
-       Comment: I love mid century modern. 
-       Comment: It's hard to decorate a home office bare wall.`;
+       return res.status(404).json({ error: 'No meaningful discussion data found for these subreddits.' });
     }
 
     // 2. Send to LLM
-    const signals = await analyzeMarketSignals(aggregatedText, category, process.env.OPENROUTER_API_KEY);
+    const signals = await analyzeMarketSignals(aggregatedText, category, apiKey);
 
     // 3. Cache the result
     db.prepare('INSERT INTO analyses (category, subreddits_json, insights_json, created_at) VALUES (?, ?, ?, ?)').run(
@@ -89,7 +88,31 @@ app.post('/api/analyze-niche', async (req, res) => {
     res.json({ signals });
   } catch (error) {
     console.error("Error in /analyze-niche:", error);
-    res.status(500).json({ error: error.message });
+    res.status(error.status || 500).json({ error: error.message });
+  }
+});
+
+app.get('/api/history', (req, res) => {
+  try {
+    const history = db.prepare('SELECT id, category, subreddits_json, created_at FROM analyses ORDER BY created_at DESC').all();
+    res.json(history.map(row => ({
+      ...row,
+      subreddits: JSON.parse(row.subreddits_json)
+    })));
+  } catch (error) {
+    console.error("Error fetching history:", error);
+    res.status(500).json({ error: 'Failed to fetch history' });
+  }
+});
+
+app.get('/api/history/:id', (req, res) => {
+  try {
+    const row = db.prepare('SELECT insights_json FROM analyses WHERE id = ?').get(req.params.id);
+    if (!row) return res.status(404).json({ error: 'Analysis not found' });
+    res.json({ signals: JSON.parse(row.insights_json) });
+  } catch (error) {
+    console.error("Error fetching analysis:", error);
+    res.status(500).json({ error: 'Failed to fetch analysis' });
   }
 });
 

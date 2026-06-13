@@ -9,9 +9,9 @@ const USER_AGENT = 'Quippy/1.0.0 (by u/QuippyApp)';
  */
 async function fetchHotPosts(subreddit) {
   try {
-    const url = 'https://www.reddit.com/r/' + subreddit + '/hot.json?limit=25';
+    const url = 'https://api.pullpush.io/reddit/search/submission/?subreddit=' + subreddit + '&size=25';
     const response = await axios.get(url, { headers: { 'User-Agent': USER_AGENT } });
-    return response.data.data.children.map(child => child.data);
+    return response.data.data || [];
   } catch (error) {
     console.error('Failed to fetch from r/' + subreddit + ':', error.message);
     return [];
@@ -23,11 +23,10 @@ async function fetchHotPosts(subreddit) {
  */
 async function fetchComments(postId) {
   try {
-    const url = 'https://www.reddit.com/comments/' + postId + '.json?limit=20&depth=2';
+    const url = 'https://api.pullpush.io/reddit/search/comment/?link_id=' + postId + '&size=20';
     const response = await axios.get(url, { headers: { 'User-Agent': USER_AGENT } });
-    // Reddit comments API returns an array: [0] is post info, [1] is comments
-    const commentsData = response.data[1]?.data?.children || [];
-    return commentsData.map(child => child.data).filter(c => c.body); // Filter out 'more' stubs
+    const commentsData = response.data.data || [];
+    return commentsData.filter(c => c.body);
   } catch (error) {
     console.error('Failed to fetch comments for ' + postId + ':', error.message);
     return [];
@@ -56,8 +55,8 @@ async function ingestRedditData(subreddits) {
         id: post.id,
         title: post.title,
         subreddit: post.subreddit,
-        upvotes: post.ups,
-        num_comments: post.num_comments,
+        upvotes: post.score || post.ups || 0,
+        num_comments: post.num_comments || 0,
         created_utc: post.created_utc,
         fetched_at: Date.now()
       });
@@ -101,9 +100,10 @@ async function ingestRedditData(subreddits) {
     db.transaction(() => {
       for (const comment of comments) {
         if (!comment.id || !comment.body) continue;
-        const repliesCount = comment.replies && comment.replies.data ? comment.replies.data.children.length : 0;
-        const memeScore = calculateMemeScore(comment.ups, repliesCount, comment.body);
-        insertComment.run(comment.id, post.id, comment.body, comment.ups, repliesCount, memeScore);
+        const repliesCount = 0; // Pullpush doesn't nest replies easily
+        const ups = comment.score || comment.ups || 0;
+        const memeScore = calculateMemeScore(ups, repliesCount, comment.body);
+        insertComment.run(comment.id, post.id, comment.body, ups, repliesCount, memeScore);
       }
     })();
     await new Promise(r => setTimeout(r, 1000));

@@ -3,7 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const { db } = require('./db/schema');
 const { fetchHotPosts, fetchComments } = require('./services/redditService');
-const { suggestSubreddits, analyzeMarketSignals } = require('./services/llmService');
+const { suggestSubreddits, analyzeMarketSignals, ALLOWED_MODELS } = require('./services/llmService');
 
 const app = express();
 app.use(cors());
@@ -11,14 +11,19 @@ app.use(express.json());
 
 // API Routes
 
+app.get('/api/models', (req, res) => {
+  res.json({ models: ALLOWED_MODELS });
+});
+
 app.post('/api/ideate-subreddits', async (req, res) => {
   try {
-    const { category } = req.body;
+    const { category, model } = req.body;
     const apiKey = req.headers['x-api-key'] || process.env.OPENROUTER_API_KEY;
     if (!category) return res.status(400).json({ error: 'Category is required' });
     if (!apiKey) return res.status(401).json({ error: 'OpenRouter API Key is required' });
 
-    const subreddits = await suggestSubreddits(category, apiKey);
+    const selectedModel = model || ALLOWED_MODELS[0];
+    const subreddits = await suggestSubreddits(category, apiKey, selectedModel);
     res.json({ subreddits });
   } catch (error) {
     console.error("Error in /ideate-subreddits:", error);
@@ -28,16 +33,18 @@ app.post('/api/ideate-subreddits', async (req, res) => {
 
 app.post('/api/analyze-niche', async (req, res) => {
   try {
-    const { category, subreddits } = req.body;
+    const { category, subreddits, model } = req.body;
     const apiKey = req.headers['x-api-key'] || process.env.OPENROUTER_API_KEY;
     if (!category || !subreddits || !Array.isArray(subreddits)) {
       return res.status(400).json({ error: 'Category and subreddits array are required' });
     }
     if (!apiKey) return res.status(401).json({ error: 'OpenRouter API Key is required' });
 
+    const selectedModel = model || ALLOWED_MODELS[0];
+
     // Check if we already have a recent analysis for this exact configuration
     const subsJson = JSON.stringify(subreddits.sort());
-    const existing = db.prepare('SELECT insights_json FROM analyses WHERE category = ? AND subreddits_json = ? ORDER BY created_at DESC LIMIT 1').get(category, subsJson);
+    const existing = db.prepare('SELECT insights_json FROM analyses WHERE category = ? AND subreddits_json = ? AND model_used = ? ORDER BY created_at DESC LIMIT 1').get(category, subsJson, selectedModel);
     
     if (existing) {
       return res.json({ signals: JSON.parse(existing.insights_json) });
@@ -75,13 +82,14 @@ app.post('/api/analyze-niche', async (req, res) => {
     }
 
     // 2. Send to LLM
-    const signals = await analyzeMarketSignals(aggregatedText, category, apiKey);
+    const signals = await analyzeMarketSignals(aggregatedText, category, apiKey, selectedModel);
 
     // 3. Cache the result
-    db.prepare('INSERT INTO analyses (category, subreddits_json, insights_json, created_at) VALUES (?, ?, ?, ?)').run(
+    db.prepare('INSERT INTO analyses (category, subreddits_json, insights_json, model_used, created_at) VALUES (?, ?, ?, ?, ?)').run(
       category,
       subsJson,
       JSON.stringify(signals),
+      selectedModel,
       Date.now()
     );
 
@@ -94,7 +102,7 @@ app.post('/api/analyze-niche', async (req, res) => {
 
 app.get('/api/history', (req, res) => {
   try {
-    const history = db.prepare('SELECT id, category, subreddits_json, created_at FROM analyses ORDER BY created_at DESC').all();
+    const history = db.prepare('SELECT id, category, subreddits_json, model_used, created_at FROM analyses ORDER BY created_at DESC').all();
     res.json(history.map(row => ({
       ...row,
       subreddits: JSON.parse(row.subreddits_json)

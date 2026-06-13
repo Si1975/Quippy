@@ -5,7 +5,8 @@ const ALLOWED_MODELS = [
   'meta-llama/llama-3.3-70b-instruct:free',
   'google/gemma-3-27b-it:free',
   'qwen/qwen3-coder:free',
-  'mistralai/mistral-7b-instruct:free'
+  'mistralai/mistral-7b-instruct:free',
+  'nvidia/llama-3.1-nemotron-70b-instruct:free'
 ];
 
 function validateModel(model) {
@@ -56,8 +57,8 @@ async function generateQuips(commentBody, apiKey) {
   }
 }
 
-async function suggestSubreddits(category, apiKey) {
-  const model = ALLOWED_MODELS[0];
+async function suggestSubreddits(category, apiKey, reqModel) {
+  const model = reqModel || ALLOWED_MODELS[0];
   validateModel(model);
 
   try {
@@ -100,8 +101,8 @@ async function suggestSubreddits(category, apiKey) {
   }
 }
 
-async function analyzeMarketSignals(aggregatedText, category, apiKey) {
-  const model = ALLOWED_MODELS[0];
+async function analyzeMarketSignals(aggregatedText, category, apiKey, reqModel) {
+  const model = reqModel || ALLOWED_MODELS[0];
   validateModel(model);
 
   try {

@@ -46,9 +46,20 @@ db.exec(`
     category TEXT,
     subreddits_json TEXT,
     insights_json TEXT,
+    model_used TEXT,
     created_at INTEGER
   );
 `);
+
+// Migration for existing tables
+try {
+  const tableInfo = db.pragma('table_info(analyses)');
+  if (!tableInfo.some(col => col.name === 'model_used')) {
+    db.exec('ALTER TABLE analyses ADD COLUMN model_used TEXT;');
+  }
+} catch (e) {
+  console.log("Migration error:", e);
+}
 
 // Setup default config if not exists
 const checkConfig = db.prepare('SELECT value FROM config WHERE key = ?').get('subreddits');

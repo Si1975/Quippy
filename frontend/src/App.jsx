@@ -11,6 +11,8 @@ function App() {
   const [apiKey, setApiKey] = useState(localStorage.getItem('openrouter_key') || '');
   const [history, setHistory] = useState([]);
   const [tempKey, setTempKey] = useState('');
+  const [models, setModels] = useState([]);
+  const [selectedModel, setSelectedModel] = useState('');
 
   const loadHistory = async () => {
     try {
@@ -21,8 +23,19 @@ function App() {
     }
   };
 
+  const loadModels = async () => {
+    try {
+      const data = await fetchModels();
+      setModels(data.models);
+      if (data.models.length > 0) setSelectedModel(data.models[0]);
+    } catch (err) {
+      console.error('Failed to load models', err);
+    }
+  };
+
   useEffect(() => {
     loadHistory();
+    loadModels();
   }, []);
 
   const handleSaveKey = () => {
@@ -35,7 +48,7 @@ function App() {
     setIsAnalyzing(true);
     setError(null);
     try {
-      const data = await analyzeNiche(category, subreddits, apiKey);
+      const data = await analyzeNiche(category, subreddits, apiKey, selectedModel);
       setSignals(data.signals);
       loadHistory(); // Refresh history
     } catch (err) {
@@ -74,7 +87,14 @@ function App() {
       <main className="main-content" style={{ gridTemplateColumns: '350px 1fr', padding: '1rem 2rem', gap: '2rem' }}>
         {/* Left Column: Configuration & History Sidebar */}
         <aside className="sidebar" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-           <ConfigurationPanel onAnalyze={handleAnalyze} apiKey={apiKey} onError={setError} />
+           <ConfigurationPanel 
+             onAnalyze={handleAnalyze} 
+             apiKey={apiKey} 
+             onError={setError} 
+             models={models}
+             selectedModel={selectedModel}
+             setSelectedModel={setSelectedModel}
+           />
            
            <div className="glass-panel" style={{ padding: '1.5rem', flex: 1, overflowY: 'auto' }}>
              <h3 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
@@ -96,6 +116,9 @@ function App() {
                      <div style={{ fontWeight: '600', marginBottom: '0.2rem' }}>{item.category}</div>
                      <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                        {item.subreddits.length} subreddits • {new Date(item.created_at).toLocaleDateString()}
+                     </div>
+                     <div style={{ fontSize: '0.7rem', color: 'var(--accent-color)', marginTop: '0.3rem', opacity: 0.8 }}>
+                       {item.model_used || 'Unknown Model'}
                      </div>
                    </div>
                  ))

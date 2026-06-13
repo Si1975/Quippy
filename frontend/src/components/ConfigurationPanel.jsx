@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Search, Loader2, Plus, X, Play } from 'lucide-react';
 import { ideateSubreddits } from '../services/api';
 
-export default function ConfigurationPanel({ onAnalyze, apiKey, onError }) {
+export default function ConfigurationPanel({ onAnalyze, apiKey, onError, models, selectedModel, setSelectedModel }) {
   const [category, setCategory] = useState('');
   const [subreddits, setSubreddits] = useState([]);
   const [newSub, setNewSub] = useState('');
@@ -13,7 +13,7 @@ export default function ConfigurationPanel({ onAnalyze, apiKey, onError }) {
     setIsIdeating(true);
     onError(null);
     try {
-      const data = await ideateSubreddits(category, apiKey);
+      const data = await ideateSubreddits(category, apiKey, selectedModel);
       // Merge unique
       const merged = Array.from(new Set([...subreddits, ...(data.subreddits || [])]));
       setSubreddits(merged);
@@ -58,6 +58,22 @@ export default function ConfigurationPanel({ onAnalyze, apiKey, onError }) {
           />
         </div>
       </div>
+
+      {models && models.length > 0 && (
+        <div>
+          <h3 style={{ fontSize: '1rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>AI Model</h3>
+          <select 
+            className="search-input" 
+            style={{ width: '100%', padding: '0.8rem', background: 'rgba(255,255,255,0.05)', color: '#fff', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', outline: 'none' }}
+            value={selectedModel}
+            onChange={e => setSelectedModel(e.target.value)}
+          >
+            {models.map(m => (
+              <option key={m} value={m} style={{ background: '#111' }}>{m}</option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>

@@ -1,13 +1,19 @@
 const API_BASE = '/api';
 
-export const ideateSubreddits = async (category, apiKey) => {
+export const fetchModels = async () => {
+  const res = await fetch(API_BASE + '/models');
+  if (!res.ok) throw new Error('Failed to fetch models');
+  return res.json();
+};
+
+export const ideateSubreddits = async (category, apiKey, model) => {
   const headers = { 'Content-Type': 'application/json' };
   if (apiKey) headers['X-API-Key'] = apiKey;
   
   const res = await fetch(API_BASE + '/ideate-subreddits', {
     method: 'POST',
     headers,
-    body: JSON.stringify({ category })
+    body: JSON.stringify({ category, model })
   });
   if (!res.ok) {
     if (res.status === 401) throw new Error('API_KEY_REQUIRED');
@@ -17,14 +23,14 @@ export const ideateSubreddits = async (category, apiKey) => {
   return res.json();
 };
 
-export const analyzeNiche = async (category, subreddits, apiKey) => {
+export const analyzeNiche = async (category, subreddits, apiKey, model) => {
   const headers = { 'Content-Type': 'application/json' };
   if (apiKey) headers['X-API-Key'] = apiKey;
 
   const res = await fetch(API_BASE + '/analyze-niche', {
     method: 'POST',
     headers,
-    body: JSON.stringify({ category, subreddits })
+    body: JSON.stringify({ category, subreddits, model })
   });
   if (!res.ok) {
     if (res.status === 401) throw new Error('API_KEY_REQUIRED');
